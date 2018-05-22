@@ -53,7 +53,7 @@ QStringList GetOpenGLFlags() {
     if ( f & QGLFormat::OpenGL_ES_Common_Version_1_0 ) s.append ( "ES_C_1.0" );
     if ( f & QGLFormat::OpenGL_ES_CommonLite_Version_1_1 ) s.append ( "ES_CL_1.1" );
     if ( f & QGLFormat::OpenGL_ES_Common_Version_1_1 ) s.append ( "ES_C_1.1" );
-    if ( f & QGLFormat::OpenGL_ES_Version_2_0 ) s.append ( "ES_2,0" );
+    if ( f & QGLFormat::OpenGL_ES_Version_2_0 ) s.append ( "ES_2.0" );
     return s;
 }
 }
