@@ -1233,7 +1233,7 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
         QString tp;
         bool foundDouble = false;
 
- #if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
+#if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
           double x,y,z,w;
           GLuint index = glGetUniformLocation(programID, name);
           switch(type) {
@@ -1352,17 +1352,18 @@ void DisplayWidget::drawFragmentProgram ( int w,int h, bool toBuffer ) {
     // The projection mode as used here
     // allow us to render only a region of the viewport.
     // This allows us to perform tile based rendering.
-    glMatrixMode ( GL_PROJECTION );
-
+    QMatrix4x4 ProjectionMatrix;
     if ( getState() == DisplayWidget::Tiled ) {
         double x = ( tilesCount / tiles ) - ( tiles-1 ) /2.0;
         double y = ( tilesCount % tiles ) - ( tiles-1 ) /2.0;
-        
-        glLoadIdentity();
-
-        glTranslated ( x * ( 2.0/tiles ) , y * ( 2.0/tiles ), 1.0 );
-        glScaled ( ( 1.0+padding ) /tiles, ( 1.0+padding ) /tiles,1.0 );
-        
+        ProjectionMatrix.translate ( x * ( 2.0/tiles ) , y * ( 2.0/tiles ), 1.0 );
+        ProjectionMatrix.scale ( ( 1.0+padding ) /tiles, ( 1.0+padding ) /tiles,1.0 );
+    }
+    {
+      GLint l = shaderProgram->uniformLocation ( "ProjectionMatrix" );
+      if ( l != -1 ) {
+        shaderProgram->setUniformValue ( l, ProjectionMatrix );
+      }
     }
 
     cameraControl->transform ( pixelWidth(), pixelHeight() ); // -- Modelview + loadIdentity
@@ -1417,7 +1418,55 @@ void DisplayWidget::drawFragmentProgram ( int w,int h, bool toBuffer ) {
     // old method
     // mainWindow->setUserUniforms(shaderProgram);   
    
+#ifdef OPENGL4CORE
+
+  {
+    glDepthFunc ( GL_ALWAYS );    // always passes test so we write color
+    glEnable ( GL_DEPTH_TEST );   // enable depth testing
+    glDepthMask ( GL_TRUE );      // enable depth buffer writing
+
+    GLuint vao, vbo;
+    GLfloat data[] =
+      { -1.0f, -1.0f, 0.0f, 0.0f, 0.0f
+      ,  3.0f, -1.0f, 0.0f, 2.0f, 0.0f
+      , -1.0f,  3.0f, 0.0f, 0.0f, 2.0f
+      };
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+
+    GLuint p = shaderProgram->programId();
+    GLint Vertex = glGetAttribLocation(p, "Vertex");
+    if (Vertex != -1)
+    {
+      glVertexAttribPointer(Vertex, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
+      glEnableVertexAttribArray(Vertex);
+    }
+    GLint TexCoord = glGetAttribLocation(p, "TexCoord");
+    if (TexCoord != -1)
+    {
+      glVertexAttribPointer(TexCoord, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(((unsigned char *)(void *)0) + 3 * sizeof(GLfloat)));
+      glEnableVertexAttribArray(TexCoord);
+    }
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    if (Vertex != -1)
+      glDisableVertexAttribArray(Vertex);
+    if (TexCoord != -1)
+      glDisableVertexAttribArray(TexCoord);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &vbo);
+    glBindVertexArray(0);
+    glDeleteVertexArrays(1, &vao);
+  }
+
+#else
+
     // save current state
+
     glPushAttrib ( GL_ALL_ATTRIB_BITS );
 
     glColor4f ( 1.0,1.0,1.0,1.0 );
@@ -1436,6 +1485,8 @@ void DisplayWidget::drawFragmentProgram ( int w,int h, bool toBuffer ) {
     glEnd();
 
     glFinish(); // wait for GPU to return control
+
+#endif
     // finished with the shader
     shaderProgram->release();
     
@@ -1460,8 +1511,11 @@ void DisplayWidget::drawFragmentProgram ( int w,int h, bool toBuffer ) {
         ZAtMXY = zatmxy;
         }
     }
+
+#ifndef OPENGL4CORE
     // restore state
     glPopAttrib();
+#endif
    
 }
 
@@ -1551,7 +1605,68 @@ void DisplayWidget::drawToFrameBufferObject ( QOpenGLFramebufferObject* buffer, 
         setShaderUniforms ( bufferShaderProgram );
         // old method
         // mainWindow->setUserUniforms(bufferShaderProgram);   
+
+#ifdef OPENGL4CORE
+
+    QMatrix4x4 ProjectionMatrix;
+    {
+      GLint l = bufferShaderProgram->uniformLocation ( "ProjectionMatrix" );
+      if ( l != -1 ) {
+        bufferShaderProgram->setUniformValue ( l, ProjectionMatrix );
+      }
     }
+
+    setViewPort ( pixelWidth(),pixelHeight() );
+
+    glActiveTexture ( GL_TEXTURE0 ); // non-standard (>OpenGL 1.3) gl extension
+    glBindTexture ( GL_TEXTURE_2D, previewBuffer->texture() );
+
+    glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+    glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+
+  {
+    glDisable ( GL_DEPTH_TEST ); // No testing: coming from RTB (render to buffer)
+    glDepthMask ( GL_FALSE );   // No writing: output is color data from post effects
+
+    GLuint vao, vbo;
+    GLfloat data[] =
+      { -1.0f, -1.0f, 0.0f, 0.0f, 0.0f
+      ,  3.0f, -1.0f, 0.0f, 2.0f, 0.0f
+      , -1.0f,  3.0f, 0.0f, 0.0f, 2.0f
+      };
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(data), data, GL_STATIC_DRAW);
+
+    GLuint p = shaderProgram->programId();
+    GLint Vertex = glGetAttribLocation(p, "Vertex");
+    if (Vertex != -1)
+    {
+      glVertexAttribPointer(Vertex, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), 0);
+      glEnableVertexAttribArray(Vertex);
+    }
+    GLint TexCoord = glGetAttribLocation(p, "TexCoord");
+    if (TexCoord != -1)
+    {
+      glVertexAttribPointer(TexCoord, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (void *)(((unsigned char *)(void *)0) + 3 * sizeof(GLfloat)));
+      glEnableVertexAttribArray(TexCoord);
+    }
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
+
+    if (Vertex != -1)
+      glDisableVertexAttribArray(Vertex);
+    if (TexCoord != -1)
+      glDisableVertexAttribArray(TexCoord);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDeleteBuffers(1, &vbo);
+    glBindVertexArray(0);
+    glDeleteVertexArrays(1, &vao);
+  }
+
+#else
 
     glPushAttrib ( GL_ALL_ATTRIB_BITS );
     glMatrixMode ( GL_PROJECTION );
@@ -1585,9 +1700,12 @@ void DisplayWidget::drawToFrameBufferObject ( QOpenGLFramebufferObject* buffer, 
     glPopAttrib();
 
     glFinish(); // wait for GPU to return control
+
+#endif
     
-    if ( bufferShaderProgram ) bufferShaderProgram->release();
+    bufferShaderProgram->release();
     
+    }
     if ( buffer && !buffer->release() ) {
         WARNING ( tr("Failed to release target buffer") );
     }
