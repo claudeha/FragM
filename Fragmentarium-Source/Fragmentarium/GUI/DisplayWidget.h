@@ -57,6 +57,9 @@
 
 #include <iostream>
 
+class QOpenGLDebugMessage;
+class QOpenGLDebugLogger;
+
 namespace Fragmentarium {
   namespace GUI {
     
@@ -218,6 +221,7 @@ namespace Fragmentarium {
       void getRGBAFtile(Imf::Array2D< Imf::Rgba >& array, int w, int h);
       #endif
     public slots:
+      void messageLogged(const QOpenGLDebugMessage &msg);
       void updateBuffers();
       void clearPreviewBuffer();
       void timerSignal();
@@ -299,6 +303,7 @@ namespace Fragmentarium {
       void setZappaStatus(Qt::KeyboardModifiers km);
       
     private:
+      QOpenGLDebugLogger *m_debugLogger;
       QOpenGLFramebufferObject* previewBuffer;
       QOpenGLFramebufferObject* backBuffer;
       QOpenGLFramebufferObject* hiresBuffer;

@@ -10,6 +10,8 @@
 #include <QFileInfo>
 #include <QMatrix4x4>
 #include <QVector3D>
+#include <QOpenGLDebugLogger>
+#include <QOpenGLDebugMessage>
 
 #include "DisplayWidget.h"
 
@@ -58,9 +60,8 @@ QStringList GetOpenGLFlags() {
 }
 }
 
-
 DisplayWidget::DisplayWidget ( QGLFormat format, MainWindow* mainWin, QWidget* parent )
-    : QGLWidget ( format, parent, 0, 0 ), mainWindow ( mainWin ) {
+    : QGLWidget ( format, parent, 0, 0 ), m_debugLogger(Q_NULLPTR), mainWindow ( mainWin ) {
     clearOnChange = true;
     drawingState = Progressive;
     hiresBuffer = 0;
@@ -112,6 +113,65 @@ DisplayWidget::DisplayWidget ( QGLFormat format, MainWindow* mainWin, QWidget* p
     /// END 3DTexture
     buttonDown = false;
     }
+
+void DisplayWidget::messageLogged(const QOpenGLDebugMessage &msg)
+{
+  QString error;
+ 
+  // Format based on severity
+  switch (msg.severity())
+  {
+  case QOpenGLDebugMessage::NotificationSeverity:
+    error += "--";
+    break;
+  case QOpenGLDebugMessage::HighSeverity:
+    error += "!!";
+    break;
+  case QOpenGLDebugMessage::MediumSeverity:
+    error += "!~";
+    break;
+  case QOpenGLDebugMessage::LowSeverity:
+    error += "~~";
+    break;
+  }
+ 
+  error += " (";
+ 
+  // Format based on source
+#define CASE(c) case QOpenGLDebugMessage::c: error += #c; break
+  switch (msg.source())
+  {
+    CASE(APISource);
+    CASE(WindowSystemSource);
+    CASE(ShaderCompilerSource);
+    CASE(ThirdPartySource);
+    CASE(ApplicationSource);
+    CASE(OtherSource);
+    CASE(InvalidSource);
+  }
+#undef CASE
+ 
+  error += " : ";
+ 
+  // Format based on type
+#define CASE(c) case QOpenGLDebugMessage::c: error += #c; break
+  switch (msg.type())
+  {
+    CASE(ErrorType);
+    CASE(DeprecatedBehaviorType);
+    CASE(UndefinedBehaviorType);
+    CASE(PortabilityType);
+    CASE(PerformanceType);
+    CASE(OtherType);
+    CASE(MarkerType);
+    CASE(GroupPushType);
+    CASE(GroupPopType);
+  }
+#undef CASE
+ 
+  error += ")";
+  qDebug() << qPrintable(error) << "\n" << qPrintable(msg.message()) << "\n";
+}
 
 void DisplayWidget::updateRefreshRate() {
     QSettings settings;
@@ -1256,6 +1316,18 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
 }
 
 void DisplayWidget::drawFragmentProgram ( int w,int h, bool toBuffer ) {
+
+    if (! m_debugLogger)
+    {
+      m_debugLogger = new QOpenGLDebugLogger(this);
+      if (m_debugLogger->initialize())
+      {
+        qDebug() << "GL_DEBUG Debug Logger" << m_debugLogger << "\n";
+        connect(m_debugLogger, SIGNAL(messageLogged(QOpenGLDebugMessage)), this, SLOT(messageLogged(QOpenGLDebugMessage)));
+        m_debugLogger->startLogging();
+      }
+    }
+
     //static int c = 0;
     //INFO(QString("Draw fragment program: %1").arg(c++));
 
