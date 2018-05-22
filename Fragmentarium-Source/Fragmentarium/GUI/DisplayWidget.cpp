@@ -303,11 +303,11 @@ void DisplayWidget::setGlTexParameter ( QMap<QString, QString> map ) {
             if ( !ok ) wantedLevels = 128; // just an arbitrary small number, GL default = 1000
             glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, wantedLevels );
 
-#ifdef NVIDIAGL4PLUS
+#if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
             glGenerateMipmap ( GL_TEXTURE_2D ); //Generate mipmaps here!!!
 #else
             glTexParameteri ( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE ); //Generate mipmaps here!!!
-#endif // NVIDIAGL4PLUS
+#endif // NVIDIAGL4PLUS || OPENGL4CORE
 
             // read back and test our value
             glGetTexParameteriv ( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, &levels );
@@ -1173,7 +1173,7 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
         QString tp;
         bool foundDouble = false;
 
- #ifdef NVIDIAGL4PLUS
+ #if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
           double x,y,z,w;
           GLuint index = glGetUniformLocation(programID, name);
           switch(type) {
@@ -1234,7 +1234,7 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
                 default:
                 break;
             }
-#endif // NVIDIAGL4PLUS
+#endif // NVIDIAGL4PLUS || OPENGL4CORE
 
             // type name and value to console
             if(subframeCounter == 1) qDebug() << tp << "\t" << uniformName << uniformValue;

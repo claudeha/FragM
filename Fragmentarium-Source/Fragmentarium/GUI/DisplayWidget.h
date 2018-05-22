@@ -15,11 +15,11 @@
 #include <QGLFormat>
 #include <QGLWidget>
 
-#ifdef NVIDIAGL4PLUS
+#if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
 #include <QOpenGLFunctions_4_1_Core>
 #else
 #include <QOpenGLFunctions>
-#endif // NVIDIAGL4PLUS
+#endif // NVIDIAGL4PLUS || OPENGL4CORE
 
 #include <QOpenGLVersionFunctions>
 
@@ -71,12 +71,11 @@ namespace Fragmentarium {
     class VariableWidget;
     class CameraControl;
     
-    
-    #ifdef NVIDIAGL4PLUS
+    #if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
     class DisplayWidget : public QGLWidget, protected QOpenGLFunctions_4_1_Core
     #else
     class DisplayWidget : public QGLWidget, protected QOpenGLFunctions
-    #endif // NVIDIAGL4PLUS
+    #endif // NVIDIAGL4PLUS || OPENGL4CORE
     {
       Q_OBJECT
     public:
@@ -246,12 +245,12 @@ namespace Fragmentarium {
       QString cameraID() { return cameraControl->getID(); }
       
       bool init() {
-        #ifdef NVIDIAGL4PLUS
+        #if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
         bool ret = initializeOpenGLFunctions();
         #else
         initializeOpenGLFunctions();
         bool ret = true;
-        #endif // NVIDIAGL4PLUS
+        #endif // NVIDIAGL4PLUS || OPENGL4CORE
         vendor = QString ( ( char * ) glGetString ( GL_VENDOR ) );
         renderer = QString ( ( char * ) glGetString ( GL_RENDERER ) );
         /// test for nVidia card and set the nV flag
