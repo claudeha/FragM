@@ -564,6 +564,10 @@ void MainWindow::init()
     //    Multisample buffers: Disabled.
 
     QGLFormat fmt;
+#ifdef OPENGL4CORE
+    fmt.setVersion(4, 1);
+    fmt.setProfile(QGLFormat::CoreProfile);
+#endif
     fmt.setDoubleBuffer(false);
     fmt.setStencil(false);
     fmt.setDepthBufferSize(32);
