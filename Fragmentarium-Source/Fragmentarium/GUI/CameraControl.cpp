@@ -312,9 +312,11 @@ namespace Fragmentarium {
             this->height = height;
             this->width = width;
 
+#if 0
             // -- Modelview
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
+#endif
             return QVector3D(1.0,1.0,1.0);
         }
 
@@ -395,8 +397,10 @@ namespace Fragmentarium {
         }
 
         QVector3D Camera2D::transform(int /*width*/, int /*height*/) {
+#if 0
             glMatrixMode(GL_MODELVIEW);
             glLoadIdentity();
+#endif
             return QVector3D(1.0,1.0,1.0);
         }
 
