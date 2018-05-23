@@ -131,7 +131,7 @@ IF ( USE_OPEN_EXR )
   
 ENDIF (USE_OPEN_EXR)
 
-SET ( CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra" )
+SET ( CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -g" )
 
 add_definitions ( -Wall )
 
