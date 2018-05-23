@@ -363,11 +363,11 @@ void DisplayWidget::setGlTexParameter ( QMap<QString, QString> map ) {
             if ( !ok ) wantedLevels = 128; // just an arbitrary small number, GL default = 1000
             glTexParameteri ( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, wantedLevels );
 
-#if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
+#if defined(NVIDIAGL4PLUS) || defined(OPENGLCORE)
             glGenerateMipmap ( GL_TEXTURE_2D ); //Generate mipmaps here!!!
 #else
             glTexParameteri ( GL_TEXTURE_2D, GL_GENERATE_MIPMAP, GL_TRUE ); //Generate mipmaps here!!!
-#endif // NVIDIAGL4PLUS || OPENGL4CORE
+#endif // NVIDIAGL4PLUS || OPENGLCORE
 
             // read back and test our value
             glGetTexParameteriv ( GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, &levels );
@@ -1233,7 +1233,7 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
         QString tp;
         bool foundDouble = false;
 
-#if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
+#if defined(NVIDIAGL4PLUS) || defined(OPENGLCORE)
           double x,y,z,w;
           GLuint index = glGetUniformLocation(programID, name);
           switch(type) {
@@ -1294,7 +1294,7 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
                 default:
                 break;
             }
-#endif // NVIDIAGL4PLUS || OPENGL4CORE
+#endif // NVIDIAGL4PLUS || OPENGLCORE
 
             // type name and value to console
             if(subframeCounter == 1) qDebug() << tp << "\t" << uniformName << uniformValue;
@@ -1418,7 +1418,7 @@ void DisplayWidget::drawFragmentProgram ( int w,int h, bool toBuffer ) {
     // old method
     // mainWindow->setUserUniforms(shaderProgram);   
    
-#ifdef OPENGL4CORE
+#ifdef OPENGLCORE
 
   {
     glDepthFunc ( GL_ALWAYS );    // always passes test so we write color
@@ -1512,7 +1512,7 @@ void DisplayWidget::drawFragmentProgram ( int w,int h, bool toBuffer ) {
         }
     }
 
-#ifndef OPENGL4CORE
+#ifndef OPENGLCORE
     // restore state
     glPopAttrib();
 #endif
@@ -1606,7 +1606,7 @@ void DisplayWidget::drawToFrameBufferObject ( QOpenGLFramebufferObject* buffer, 
         // old method
         // mainWindow->setUserUniforms(bufferShaderProgram);   
 
-#ifdef OPENGL4CORE
+#ifdef OPENGLCORE
 
     QMatrix4x4 ProjectionMatrix;
     {

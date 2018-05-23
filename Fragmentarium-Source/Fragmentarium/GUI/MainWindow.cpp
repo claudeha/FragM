@@ -564,7 +564,7 @@ void MainWindow::init()
     //    Multisample buffers: Disabled.
 
     QGLFormat fmt;
-#ifdef OPENGL4CORE
+#ifdef OPENGLCORE
     fmt.setVersion(4, 1);
     fmt.setProfile(QGLFormat::CoreProfile);
 #endif

@@ -15,11 +15,11 @@
 #include <QGLFormat>
 #include <QGLWidget>
 
-#if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
+#if defined(NVIDIAGL4PLUS) || defined(OPENGLCORE)
 #include <QOpenGLFunctions_4_1_Core>
 #else
 #include <QOpenGLFunctions>
-#endif // NVIDIAGL4PLUS || OPENGL4CORE
+#endif // NVIDIAGL4PLUS || OPENGLCORE
 
 #include <QOpenGLVersionFunctions>
 
@@ -74,11 +74,11 @@ namespace Fragmentarium {
     class VariableWidget;
     class CameraControl;
     
-    #if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
+    #if defined(NVIDIAGL4PLUS) || defined(OPENGLCORE)
     class DisplayWidget : public QGLWidget, protected QOpenGLFunctions_4_1_Core
     #else
     class DisplayWidget : public QGLWidget, protected QOpenGLFunctions
-    #endif // NVIDIAGL4PLUS || OPENGL4CORE
+    #endif // NVIDIAGL4PLUS || OPENGLCORE
     {
       Q_OBJECT
     public:
@@ -249,12 +249,12 @@ namespace Fragmentarium {
       QString cameraID() { return cameraControl->getID(); }
       
       bool init() {
-        #if defined(NVIDIAGL4PLUS) || defined(OPENGL4CORE)
+        #if defined(NVIDIAGL4PLUS) || defined(OPENGLCORE)
         bool ret = initializeOpenGLFunctions();
         #else
         initializeOpenGLFunctions();
         bool ret = true;
-        #endif // NVIDIAGL4PLUS || OPENGL4CORE
+        #endif // NVIDIAGL4PLUS || OPENGLCORE
         if (! ret)
         {
           std::cerr << "Failed to initialize OpenGL, aborting." << std::endl;
