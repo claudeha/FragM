@@ -255,6 +255,11 @@ namespace Fragmentarium {
         initializeOpenGLFunctions();
         bool ret = true;
         #endif // NVIDIAGL4PLUS || OPENGL4CORE
+        if (! ret)
+        {
+          std::cerr << "Failed to initialize OpenGL, aborting." << std::endl;
+          abort();
+        }
         vendor = QString ( ( char * ) glGetString ( GL_VENDOR ) );
         renderer = QString ( ( char * ) glGetString ( GL_RENDERER ) );
         /// test for nVidia card and set the nV flag
