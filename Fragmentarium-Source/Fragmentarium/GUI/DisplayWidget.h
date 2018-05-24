@@ -16,7 +16,11 @@
 #include <QGLWidget>
 
 #if defined(NVIDIAGL4PLUS) || defined(OPENGLCORE)
+#if OPENGLMAJOR == 3 && OPENGLMINOR == 3
+#include <QOpenGLFunctions_3_3_Core>
+#else
 #include <QOpenGLFunctions_4_1_Core>
+#endif
 #else
 #include <QOpenGLFunctions>
 #endif // NVIDIAGL4PLUS || OPENGLCORE
@@ -75,7 +79,12 @@ namespace Fragmentarium {
     class CameraControl;
     
     #if defined(NVIDIAGL4PLUS) || defined(OPENGLCORE)
-    class DisplayWidget : public QGLWidget, protected QOpenGLFunctions_4_1_Core
+    class DisplayWidget : public QGLWidget,
+      #if OPENGLMAJOR == 3 && OPENGLMINOR == 3
+                          protected QOpenGLFunctions_3_3_Core
+      #else
+                          protected QOpenGLFunctions_4_1_Core
+      #endif
     #else
     class DisplayWidget : public QGLWidget, protected QOpenGLFunctions
     #endif // NVIDIAGL4PLUS || OPENGLCORE

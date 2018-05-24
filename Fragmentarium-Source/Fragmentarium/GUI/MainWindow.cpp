@@ -565,7 +565,7 @@ void MainWindow::init()
 
     QGLFormat fmt;
 #ifdef OPENGLCORE
-    fmt.setVersion(4, 1);
+    fmt.setVersion(OPENGLMAJOR, OPENGLMINOR);
     fmt.setProfile(QGLFormat::CoreProfile);
 #endif
     fmt.setDoubleBuffer(false);

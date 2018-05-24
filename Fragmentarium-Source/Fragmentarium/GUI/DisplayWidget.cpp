@@ -1261,6 +1261,7 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
                 case GL_FLOAT_MAT4:     tp = "FLOAT_MAT4"; foundDouble = false; break;
                 case GL_SAMPLER_2D:     tp = "SAMPLER_2D"; foundDouble = false; break;
                 case GL_SAMPLER_CUBE:   tp = "SAMPLER_CUBE"; foundDouble = false; break;
+#if defined(NVIDIAGL4PLUS) || OPENGLMAJOR >= 4
                 case GL_DOUBLE:         tp = "DOUBLE"; foundDouble = true;
                 glUniform1d(index, uniformValue.toDouble());
                 break;
@@ -1291,6 +1292,7 @@ void DisplayWidget::setShaderUniforms(QOpenGLShaderProgram* shaderProg) {
                 case GL_DOUBLE_MAT3x4:  tp = "DOUBLE_MAT3x4"; foundDouble = true; break;
                 case GL_DOUBLE_MAT4x2:  tp = "DOUBLE_MAT4x2"; foundDouble = true; break;
                 case GL_DOUBLE_MAT4x3:  tp = "DOUBLE_MAT4x3"; foundDouble = true; break;
+#endif
                 default:
                 break;
             }

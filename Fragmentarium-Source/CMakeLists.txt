@@ -32,7 +32,8 @@ find_package ( Qt5LinguistTools )
 ADD_DEFINITIONS ( -DQT_DEVICE_PIXEL_RATIO=1 )
 
 # ON to compile with OpenGL 4.1 Core Profile enabled
-OPTION ( OPENGLCORE "Build for OpenGL Core Profile" OFF)
+OPTION ( OPENGLCORE41 "Build for OpenGL 4.1 Core Profile" OFF)
+OPTION ( OPENGLCORE33 "Build for OpenGL 3.3 Core Profile" OFF)
 # ON to compile with AsmBrowser enabled requires nVidia + GL > 4.0
 OPTION ( NVIDIAGL4PLUS "Build for nVidia GL v4+" ON)
 # ON if you have OpenEXR libs and include files
@@ -47,8 +48,11 @@ IF ( MINGW )
   set ( MINGW_LIB_PATH "C:\\Qt/Tools/mingw492_32/i686-w64-mingw32/lib" CACHE PATH "set to the mingw lib path" )
 ENDIF ()
 
-IF( OPENGLCORE )
-  ADD_DEFINITIONS ( -DOPENGLCORE=1 )
+IF( OPENGLCORE41 )
+  ADD_DEFINITIONS ( -DOPENGLCORE=1 -DOPENGLMAJOR=4 -DOPENGLMINOR=1 )
+ENDIF ()
+IF( OPENGLCORE33 )
+  ADD_DEFINITIONS ( -DOPENGLCORE=1 -DOPENGLMAJOR=3 -DOPENGLMINOR=3 )
 ENDIF ()
 IF( NVIDIAGL4PLUS )
   ADD_DEFINITIONS ( -DNVIDIAGL4PLUS=1 )
