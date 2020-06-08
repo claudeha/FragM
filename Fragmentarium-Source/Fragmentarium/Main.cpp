@@ -7,6 +7,8 @@
 
 #include "GUI/MainWindow.h"
 
+#include <qd/fpu.h>
+
 #ifdef Q_OS_WIN
 // Needed for unicode commandline below.
 #define WIN32_LEAN_AND_MEAN
@@ -216,6 +218,8 @@ CommandLineParseResult parseCommandLine(QCommandLineParser &parser, QString *err
 
 int main(int argc, char *argv[])
 {
+    // needed for QD to work properly on x87
+    fpu_fix_start(nullptr);
 
 #ifdef Q_OS_WIN
     qApp->addLibraryPath("./");

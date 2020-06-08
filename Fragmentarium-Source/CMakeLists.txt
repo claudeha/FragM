@@ -46,6 +46,7 @@ set ( CMAKE_AUTORCC ON)
 set ( CMAKE_INCLUDE_CURRENT_DIR ON )
 
 # find_package ( glm REQUIRED )
+FIND_LIBRARY ( qd_LIBRARIES qd )
 find_package ( OpenGL REQUIRED )
 find_package ( Qt5LinguistTools REQUIRED )
 
@@ -305,7 +306,7 @@ ELSEIF ( WIN32 )
   add_executable ( ${PROJECT_NAME}-console ${QM_FILES} ${Fragmentarium_SRCS} ${UIS} ${RSCS} ${TRS} ${MOCS})
 ENDIF ()
 
-target_link_libraries ( ${PROJECT_NAME} ${OPENGL_LIBRARIES} ${OpenEXR_LIBRARIES} )
+target_link_libraries ( ${PROJECT_NAME} ${OPENGL_LIBRARIES} ${OpenEXR_LIBRARIES} ${qd_LIBRARIES})
 IF ( WIN32 )
 target_link_libraries ( ${PROJECT_NAME}-console ${OPENGL_LIBRARIES} ${OpenEXR_LIBRARIES} )
 ENDIF ()
