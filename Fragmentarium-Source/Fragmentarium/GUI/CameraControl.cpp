@@ -448,7 +448,9 @@ double Camera3D::StepSize()
 
 Camera2D::Camera2D(QStatusBar *statusBar) : statusBar(statusBar)
 {
-    center = nullptr;
+    centerO = nullptr;
+    centerX = nullptr;
+    centerY = nullptr;
     zoom = nullptr;
     enableTransform = nullptr;
     rotateAngle = nullptr;
@@ -483,9 +485,17 @@ glm::dvec3 Camera2D::transform(int w, int h)
 
 void Camera2D::connectWidgets(VariableEditor *ve)
 {
-    center = dynamic_cast<Float2Widget *>(ve->getWidgetFromName("Center"));
-    if (center == nullptr) {
+    centerO = dynamic_cast<Float2Widget *>(ve->getWidgetFromName("Center"));
+    centerX = dynamic_cast<Float4Widget *>(ve->getWidgetFromName("CenterX"));
+    centerY = dynamic_cast<Float4Widget *>(ve->getWidgetFromName("CenterY"));
+    if (centerO == nullptr && (centerX == nullptr || centerY == nullptr)) {
         WARNING(QCoreApplication::translate("Camera2D", "Could not find Center interface widget"));
+    }
+    if (centerO != nullptr && (centerX != nullptr || centerY != nullptr)) {
+        WARNING(QCoreApplication::translate("Camera2D", "Found both Center and CenterX/CenterY interface widgets"));
+    }
+    if ((centerX != nullptr) != (centerY != nullptr)) {
+        WARNING(QCoreApplication::translate("Camera2D", "Found only one of CenterX and CenterY interface widgets"));
     }
     zoom = dynamic_cast<FloatWidget *>(ve->getWidgetFromName("Zoom"));
     if (zoom == nullptr) {
@@ -503,12 +513,13 @@ void Camera2D::connectWidgets(VariableEditor *ve)
 
 namespace
 {
-glm::dvec3 getModelCoord(glm::dvec3 mouseCoord, glm::dvec3 center, double zoom,
+std::pair<qd_real, qd_real> getModelCoord(glm::dvec3 mouseCoord, std::pair<qd_real, qd_real> center, double zoom,
                         int w, int h)
 {
     double ar = h / (double)w;
-    glm::dvec3 coord = (mouseCoord / zoom + center);
-    coord.x=(ar * coord.x);
+    std::pair<qd_real, qd_real> coord;
+    coord.first = (mouseCoord.x / zoom + center.first) * ar;
+    coord.second = mouseCoord.y / zoom + center.second;
     return coord;
 }
 } // namespace
@@ -535,10 +546,10 @@ glm::dmat2 Camera2D::getTransform()
 
 bool Camera2D::parseKeys()
 {
-    if (center == nullptr || zoom == nullptr) {
+    if ((centerO == nullptr && (centerX == nullptr || centerY == nullptr)) || zoom == nullptr) {
         return false;
     }
-    glm::dvec3 centerValue = glm::dvec3(center->getValue(), 0.0);
+    std::pair<qd_real, qd_real> centerValue = getCenterValue();
     double zoomValue = zoom->getValue();
 
     double factor = pow(1.05f, (double)stepSize);
@@ -575,26 +586,34 @@ bool Camera2D::parseKeys()
 
     // ---------- Movement -----------------------------
 
-    if (keyDown(Qt::Key_A)) {
-        center->setValue(centerValue + glm::dvec3(getTransform() * glm::dvec2(-zFactor, 0.0), 0.0));
+#define UPDATE \
+        centerValue.first += d.x; \
+        centerValue.second += d.y; \
+        setCenterValue(centerValue); \
         keysDown = true;
+
+    if (keyDown(Qt::Key_A)) {
+        glm::dvec2 d = getTransform() * glm::dvec2(-zFactor, 0.0);
+        UPDATE
     }
 
     if (keyDown(Qt::Key_D)) {
-        center->setValue(centerValue + glm::dvec3(getTransform() * glm::dvec2(zFactor, 0.0), 0.0));
-        keysDown = true;
+        glm::dvec2 d = getTransform() * glm::dvec2(zFactor, 0.0);
+        UPDATE
     }
 
 
     if (keyDown(Qt::Key_W)) {
-        center->setValue(centerValue + glm::dvec3(getTransform() * glm::dvec2(0.0, zFactor), 0.0));
-        keysDown = true;
+        glm::dvec2 d = getTransform() * glm::dvec2(0.0, zFactor);
+        UPDATE
     }
 
     if (keyDown(Qt::Key_S)) {
-        center->setValue(centerValue + glm::dvec3(getTransform() * glm::dvec2(0.0, -zFactor), 0.0));
-        keysDown = true;
+        glm::dvec2 d = getTransform() * glm::dvec2(0.0, -zFactor);
+        UPDATE
     }
+
+#undef UPDATE
 
     if (keyDown(Qt::Key_Q)) {
         zoom->setValue(zoomValue * factor);
@@ -612,11 +631,11 @@ bool Camera2D::parseKeys()
 
 bool Camera2D::mouseEvent(QMouseEvent *e, int w, int h)
 {
-    if (center == nullptr || zoom == nullptr) {
+    if ((centerO == nullptr && (centerX == nullptr || centerY == nullptr)) || zoom == nullptr) {
         return false;
     }
     glm::dvec3 pos = glm::dvec3(e->pos().x() / (0.5 * double(w)) - 1.0, 1.0 - e->pos().y() / (0.5 * double(h)), 0.0);
-    glm::dvec3 centerValue = glm::dvec3(center->getValue(), 0.0);
+    std::pair<qd_real, qd_real> centerValue = getCenterValue();
     double zoomValue = zoom->getValue();
 
     if (e->type() ==  QEvent::MouseButtonPress) {
@@ -632,13 +651,20 @@ bool Camera2D::mouseEvent(QMouseEvent *e, int w, int h)
         glm::dvec3 dp = mouseDown - pos;
         dp = glm::dvec3(getTransform() * glm::dvec2(dp), 0.0);
         if (e->buttons() == Qt::LeftButton) {
-            center->setValue(centerDown + dp * mouseSpeed / zoomDown);
+            glm::dvec3 d = dp * mouseSpeed / zoomDown;
+            std::pair<qd_real, qd_real> newCenterValue;
+            newCenterValue.first = centerDown.first + d.x;
+            newCenterValue.second = centerDown.second + d.y;
+            setCenterValue(newCenterValue);
         } else if (e->buttons() == Qt::RightButton) {
             // Convert mouse down to model coordinates
-            glm::dvec3 md = getModelCoord(mouseDown, centerDown, zoomDown, w, h);
+            std::pair<qd_real, qd_real> md = getModelCoord(mouseDown, centerDown, zoomDown, w, h);
             double newZoom = zoomDown + dp.y * (zoomDown) * mouseSpeed;
             double z = newZoom / zoomDown;
-            center->setValue(md - (md - centerDown) / z);
+            std::pair<qd_real, qd_real> newCenterValue;
+            newCenterValue.first = md.first - (md.first - centerDown.first) * (1 / z);
+            newCenterValue.second = md.second - (md.second - centerDown.second) * (1 / z);
+            setCenterValue(newCenterValue);
             zoom->setValue(newZoom);
         }
         return true;
@@ -668,20 +694,20 @@ bool Camera2D::wheelEvent(QWheelEvent *e)
     double factor = 1.15;
     double zoomValue = zoom->getValue();
     // Convert mouse pos to model coordinates
-    glm::dvec3 centerValue; centerValue.x = center->getValue().x; centerValue.y = center->getValue().y; centerValue.z=0.0;
+    std::pair<qd_real, qd_real> centerValue = getCenterValue();
     // traveling
     QSettings settings;
     if( settings.value("ddCameraMode").toBool() )
     {
         glm::dvec3 pos = glm::dvec3((e->pos().x() * (1.0 / double(width))) - 0.5, 0.5 - (e->pos().y() * (1.0 / double(height))), 0.0);
         pos = glm::dvec3(getTransform() * glm::dvec2(pos), 0.0);
-        glm::dvec3 md = pos / zoomValue + centerValue;
-
+        std::pair<qd_real, qd_real> newCenterValue;
+        newCenterValue.first = pos.x / zoomValue + centerValue.first;
+        newCenterValue.second = pos.y / zoomValue + centerValue.second;
+        setCenterValue(newCenterValue);
         if (steps > 0.0) {
-            center->setValue(md);
             zoom->setValue(zoomValue * factor);
         } else {
-            center->setValue(md);
             zoom->setValue(zoomValue / factor);
         }
     }
@@ -694,13 +720,47 @@ bool Camera2D::wheelEvent(QWheelEvent *e)
 
         glm::dvec3 pos = glm::dvec3(-u, v, 0.0);
         pos = glm::dvec3(getTransform() * glm::dvec2(pos), 0.0);
-        glm::dvec3 md = centerValue + pos / (zoomValue * g) * (1.0 - g);
-
-    center->setValue(md);
+        std::pair<qd_real, qd_real> newCenterValue;
+        newCenterValue.first = pos.x / (zoomValue * g) * (1.0 - g) + centerValue.first;
+        newCenterValue.second = pos.y / (zoomValue * g) * (1.0 - g) + centerValue.second;
+        setCenterValue(newCenterValue);
     zoom->setValue(zoomValue * g);
 
     }
     return true;
 }
+
+std::pair<qd_real, qd_real> Camera2D::getCenterValue()
+{
+    std::pair<qd_real, qd_real> centerValue;
+    if (centerO) {
+        glm::dvec2 c = centerO->getValue();
+        centerValue.first = c.x;
+        centerValue.second = c.y;
+    }
+    // no 'else', these override if they exist
+    const double shift = 1.0 / (1ull << 53ull);
+    if (centerX) {
+        glm::dvec4 x = centerX->getValue();
+        centerValue.first = qd_real(x[0], x[1] * shift, x[2] * shift * shift, x[3] * shift * shift * shift);
+    }
+    if (centerY) {
+        glm::dvec4 y = centerY->getValue();
+        centerValue.second = qd_real(y[0], y[1] * shift, y[2] * shift * shift, y[3] * shift * shift * shift);
+    }
+    return centerValue;
+}
+
+void Camera2D::setCenterValue(std::pair<qd_real, qd_real> centerValue)
+{
+    const double shift = 1ull << 53ull;
+    glm::dvec2 c = glm::dvec2(centerValue.first[0], centerValue.second[0]);
+    glm::dvec4 x = glm::dvec4(centerValue.first[0], shift * centerValue.first[1], shift * shift * centerValue.first[2], shift * shift * shift * centerValue.first[3]);
+    glm::dvec4 y = glm::dvec4(centerValue.second[0], shift * centerValue.second[1], shift * shift * centerValue.second[2], shift * shift * shift * centerValue.second[3]);
+    if (centerO) centerO->setValue(glm::dvec3(c, 0.0));
+    if (centerX) centerX->setValue(x);
+    if (centerY) centerY->setValue(y);
+}
+
 } // namespace GUI
 } // namespace Fragmentarium

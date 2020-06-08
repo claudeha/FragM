@@ -9,6 +9,8 @@
 #include <QVector>
 #include <QWheelEvent>
 
+#include <qd/qd_real.h>
+
 namespace Fragmentarium
 {
 namespace GUI
@@ -16,6 +18,7 @@ namespace GUI
 
 class VariableWidget;
 class VariableEditor;
+class Float4Widget;
 class Float3Widget;
 class Float2Widget;
 class FloatWidget;
@@ -126,10 +129,14 @@ public:
     virtual void reset(bool fullReset);
     virtual double StepSize();
     virtual glm::dmat2 getTransform();
+    virtual std::pair<qd_real, qd_real> getCenterValue();
+    virtual void setCenterValue(std::pair<qd_real, qd_real> centerValue);
 private:
     int height;
     int width;
-    Float2Widget* center;
+    Float2Widget* centerO;
+    Float4Widget* centerX;
+    Float4Widget* centerY;
     FloatWidget* zoom;
     BoolWidget* enableTransform;
     FloatWidget* rotateAngle;
@@ -138,7 +145,7 @@ private:
     QStatusBar* statusBar;
     glm::dvec3 mouseDown;
     double zoomDown;
-    glm::dvec3 centerDown;
+    std::pair<qd_real, qd_real> centerDown;
 };
 } // namespace GUI
 
