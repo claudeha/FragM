@@ -2,7 +2,6 @@
 #include <QBitmap>
 #include <QDir>
 #include <QLocale>
-#include <QSplashScreen>
 #include <QtCore>
 
 #include "GUI/MainWindow.h"
@@ -310,13 +309,7 @@ int main(int argc, char *argv[])
 
     mainWin->readSettings();
     
-    QPixmap pixmap(QDir(Fragmentarium::GUI::MainWindow::getMiscDir()).absoluteFilePath("splash.png"));
-    QSplashScreen splash(pixmap, Qt::WindowStaysOnTopHint);
-
-    splash.setMask(pixmap.mask());
     QStringList openFiles = (parser.isSet("script")) ? QStringList() : QSettings().value("openFiles").toStringList();
-
-    splash.show();
 
     QStringList args = parser.positionalArguments();
     QString fragFile = args.isEmpty() ? QString() : args.last();
@@ -337,7 +330,6 @@ int main(int argc, char *argv[])
     app->processEvents();
 
     if(parser.isSet("script")) {
-        splash.finish(mainWin);
         QString filename = parser.value("script");
         if(filename.endsWith(".fqs")) {
 
@@ -364,7 +356,6 @@ int main(int argc, char *argv[])
             printf("%s",qPrintable(app->translate("main","Script file requires .fqs extention!\n")));
         }
     } else {
-        mainWin->setSplashWidgetTimeout(&splash);
         return app->exec();
     }
     return 0;
