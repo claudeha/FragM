@@ -682,15 +682,9 @@ void DisplayWidget::initFragmentShader()
 
     makeCurrent();
 
-    if (shaderProgram != nullptr) {
-        shaderProgram->release();
-        delete ( shaderProgram );
-        shaderProgram = nullptr;
-    }
-
     QSettings settings;
 
-    shaderProgram = new QOpenGLShaderProgram ( this );
+    QOpenGLShaderProgram *newShaderProgram = new QOpenGLShaderProgram ( this );
     
     if(settings.value ( "compatPatch", true ).toBool()) {
         // patch
@@ -714,62 +708,72 @@ void DisplayWidget::initFragmentShader()
     }
     
     // Vertex shader
-    bool s = shaderProgram->addShaderFromSourceCode(QOpenGLShader::Vertex, fragmentSource.vertexSource.join("\n"));
+    bool s = newShaderProgram->addShaderFromSourceCode(QOpenGLShader::Vertex, fragmentSource.vertexSource.join("\n"));
     if ( fragmentSource.vertexSource.count() == 0 ) {
-        createErrorLineLog( tr("No vertex shader found!"), shaderProgram->log(), WarningLevel, false );
+        createErrorLineLog( tr("No vertex shader found!"), newShaderProgram->log(), WarningLevel, false );
         s = false;
     }
 
     if ( !s ) {
-        createErrorLineLog( tr("Could not create vertex shader: "), shaderProgram->log(), WarningLevel, false );
-        delete ( shaderProgram );
-        shaderProgram = nullptr;
+        createErrorLineLog( tr("Could not create vertex shader: "), newShaderProgram->log(), WarningLevel, false );
+        delete ( newShaderProgram );
+        newShaderProgram = nullptr;
         return;
     }
-    if (!shaderProgram->log().isEmpty()) {
-        createErrorLineLog( tr("Vertex shader compiled with warnings: "), shaderProgram->log(), InfoLevel ,false );
+    if (!newShaderProgram->log().isEmpty()) {
+        createErrorLineLog( tr("Vertex shader compiled with warnings: "), newShaderProgram->log(), InfoLevel ,false );
     }
 
     // Fragment shader
-    s = shaderProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentSource.source.join("\n"));
+    s = newShaderProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentSource.source.join("\n"));
 
     if (s) { // Requests the shader program's id to be created immediately.
-        s = shaderProgram->create();
+        s = newShaderProgram->create();
     }
 
     if ( !s ) {
-        createErrorLineLog( tr("Could not create fragment shader: "), shaderProgram->log(), WarningLevel, false );
-        delete ( shaderProgram );
-        shaderProgram = nullptr;
+        createErrorLineLog( tr("Could not create fragment shader: "), newShaderProgram->log(), WarningLevel, false );
+        delete ( newShaderProgram );
+        newShaderProgram = nullptr;
         return;
     }
 
-    if (!shaderProgram->log().isEmpty()) {
-        createErrorLineLog( tr("Fragment shader compiled with warnings: "), shaderProgram->log(), InfoLevel, false );
+    if (!newShaderProgram->log().isEmpty()) {
+        createErrorLineLog( tr("Fragment shader compiled with warnings: "), newShaderProgram->log(), InfoLevel, false );
     }
 
-    s = shaderProgram->link();
+    s = newShaderProgram->link();
 
     if ( !s ) {
-        createErrorLineLog( tr("Could not link shader: "), shaderProgram->log(), CriticalLevel, false );
-        delete ( shaderProgram );
-        shaderProgram = nullptr;
+        createErrorLineLog( tr("Could not link shader: "), newShaderProgram->log(), CriticalLevel, false );
+        delete ( newShaderProgram );
+        newShaderProgram = nullptr;
         return;
     }
 
-    if (!shaderProgram->log().isEmpty()) {
-        createErrorLineLog( tr("Fragment shader compiled with warnings: "), shaderProgram->log(), InfoLevel, false );
+    if (!newShaderProgram->log().isEmpty()) {
+        createErrorLineLog( tr("Fragment shader compiled with warnings: "), newShaderProgram->log(), InfoLevel, false );
     }
 
-    s = shaderProgram->bind();
+    s = newShaderProgram->bind();
     if ( !s ) {
-        createErrorLineLog( tr("Could not bind shaders: "), shaderProgram->log(), CriticalLevel, false );
-        delete ( shaderProgram );
-        shaderProgram = nullptr;
+        createErrorLineLog( tr("Could not bind shaders: "), newShaderProgram->log(), CriticalLevel, false );
+        delete ( newShaderProgram );
+        newShaderProgram = nullptr;
         return;
     }
-    
-    
+
+    // shader compiled successfully, can delete the old one now
+    if (shaderProgram != nullptr) {
+        shaderProgram->release();
+        delete ( shaderProgram );
+        shaderProgram = nullptr;
+    }
+    shaderProgram = newShaderProgram;
+    newShaderProgram = nullptr;
+
+    shaderProgram->bind(); // fixes OpenGL error "program not linked"
+
     glm::mat4 identityMatrix = glm::mat4(1);
     glUniformMatrix4fv(shaderProgram->uniformLocation("projectionMatrix"), 1,  GL_FALSE, glm::value_ptr(identityMatrix));
 
@@ -1190,19 +1194,13 @@ void DisplayWidget::clearTextureCache(QMap<QPair<QString, QStringList>, bool> *t
 void DisplayWidget::initBufferShader()
 {
 
-    if (bufferShaderProgram != nullptr) {
-        bufferShaderProgram->release();
-        delete ( bufferShaderProgram );
-        bufferShaderProgram = nullptr;
-    }
-
     if (fragmentSource.bufferShaderSource == nullptr) {
         return;
     }
     
     QSettings settings;
 
-    bufferShaderProgram = new QOpenGLShaderProgram ( this );
+    QOpenGLShaderProgram *newBufferShaderProgram = new QOpenGLShaderProgram ( this );
 
     if(settings.value ( "compatPatch", true ).toBool()) {
         // patch
@@ -1216,61 +1214,72 @@ void DisplayWidget::initBufferShader()
     }
 
     // Vertex shader
-    bool s = bufferShaderProgram->addShaderFromSourceCode(QOpenGLShader::Vertex, fragmentSource.bufferShaderSource->vertexSource.join("\n"));
+    bool s = newBufferShaderProgram->addShaderFromSourceCode(QOpenGLShader::Vertex, fragmentSource.bufferShaderSource->vertexSource.join("\n"));
     if ( fragmentSource.bufferShaderSource->vertexSource.count() == 0 ) {
-        createErrorLineLog( tr("No buffershader vertex shader found!"), bufferShaderProgram->log(), InfoLevel, true );
+        createErrorLineLog( tr("No buffershader vertex shader found!"), newBufferShaderProgram->log(), InfoLevel, true );
         s = false;
     }
 
     if ( !s ) {
-        createErrorLineLog( tr("Could not create buffer vertex shader: "), bufferShaderProgram->log(), WarningLevel , true );
-        delete ( bufferShaderProgram );
-        bufferShaderProgram = nullptr;
+        createErrorLineLog( tr("Could not create buffer vertex shader: "), newBufferShaderProgram->log(), WarningLevel , true );
+        delete ( newBufferShaderProgram );
+        newBufferShaderProgram = nullptr;
         return;
     }
-    if (!bufferShaderProgram->log().isEmpty()) {
-        createErrorLineLog( tr("Buffer vertex shader compiled with warnings: "), bufferShaderProgram->log(), InfoLevel, true );
+    if (!newBufferShaderProgram->log().isEmpty()) {
+        createErrorLineLog( tr("Buffer vertex shader compiled with warnings: "), newBufferShaderProgram->log(), InfoLevel, true );
     }
 
     // Fragment shader
-    s = bufferShaderProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentSource.bufferShaderSource->getText());
+    s = newBufferShaderProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentSource.bufferShaderSource->getText());
 
     if (s) {
-        s = bufferShaderProgram->create();
+        s = newBufferShaderProgram->create();
     }
 
     if ( !s ) {
-        createErrorLineLog( tr("Could not create buffer fragment shader: "), bufferShaderProgram->log(), WarningLevel, true );
-        delete ( bufferShaderProgram );
-        bufferShaderProgram = nullptr;
+        createErrorLineLog( tr("Could not create buffer fragment shader: "), newBufferShaderProgram->log(), WarningLevel, true );
+        delete ( newBufferShaderProgram );
+        newBufferShaderProgram = nullptr;
         return;
     }
-    if (!bufferShaderProgram->log().isEmpty()) {
-        createErrorLineLog( tr("Buffer fragment shader compiled with warnings: "), bufferShaderProgram->log(), InfoLevel, true );
+    if (!newBufferShaderProgram->log().isEmpty()) {
+        createErrorLineLog( tr("Buffer fragment shader compiled with warnings: "), newBufferShaderProgram->log(), InfoLevel, true );
     }
 
-    s = bufferShaderProgram->link();
+    s = newBufferShaderProgram->link();
 
     if ( !s ) {
         CRITICAL ("");
-        createErrorLineLog( tr("Could not link buffershader: "), bufferShaderProgram->log(), WarningLevel, true  );
+        createErrorLineLog( tr("Could not link buffershader: "), newBufferShaderProgram->log(), WarningLevel, true  );
         CRITICAL ("");
-        delete ( bufferShaderProgram );
-        bufferShaderProgram = nullptr;
+        delete ( newBufferShaderProgram );
+        newBufferShaderProgram = nullptr;
         return;
     }
-    if (!bufferShaderProgram->log().isEmpty()) {
-        createErrorLineLog( tr("Buffer fragment shader compiled with warnings: "), bufferShaderProgram->log(), InfoLevel, true );
+    if (!newBufferShaderProgram->log().isEmpty()) {
+        createErrorLineLog( tr("Buffer fragment shader compiled with warnings: "), newBufferShaderProgram->log(), InfoLevel, true );
     }
 
-    s = bufferShaderProgram->bind();
+    s = newBufferShaderProgram->bind();
     if ( !s ) {
-        createErrorLineLog( tr("Could not bind shaders: "), bufferShaderProgram->log(), WarningLevel, true );
+        createErrorLineLog( tr("Could not bind shaders: "), newBufferShaderProgram->log(), WarningLevel, true );
         delete ( shaderProgram );
-        bufferShaderProgram = nullptr;
+        newBufferShaderProgram = nullptr;
         return;
     }
-    
+
+    // new buffer shader compiled, can delete the old one now
+    if (bufferShaderProgram != nullptr) {
+        bufferShaderProgram->release();
+        delete ( bufferShaderProgram );
+        bufferShaderProgram = nullptr;
+    }
+    bufferShaderProgram = newBufferShaderProgram;
+    newBufferShaderProgram = nullptr;
+
+    s = bufferShaderProgram->bind(); // fixes OpenGL error "program not linked"
+
     glm::mat4 identityMatrix = glm::mat4(1);
     glUniformMatrix4fv(bufferShaderProgram->uniformLocation("projectionMatrix"), 1,  GL_FALSE, glm::value_ptr(identityMatrix));
 
